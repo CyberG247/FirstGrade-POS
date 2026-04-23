@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +11,21 @@ import { toast } from "sonner";
 
 const Customers = () => {
   const { user } = useAuth();
+  const { businessOwnerId } = useRole();
   const [list, setList] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", tin: "" });
 
   const load = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("customers").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (!businessOwnerId) return;
+    const { data } = await supabase.from("customers").select("*").eq("user_id", businessOwnerId).order("created_at", { ascending: false });
     setList(data || []);
   };
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [businessOwnerId]);
 
   const save = async () => {
-    if (!user || !form.name.trim()) return toast.error("Name is required");
-    const { error } = await supabase.from("customers").insert({ ...form, user_id: user.id });
+    if (!businessOwnerId || !form.name.trim()) return toast.error("Name is required");
+    const { error } = await supabase.from("customers").insert({ ...form, user_id: businessOwnerId });
     if (error) return toast.error(error.message);
     toast.success("Customer added");
     setOpen(false); setForm({ name: "", phone: "", email: "", tin: "" });
