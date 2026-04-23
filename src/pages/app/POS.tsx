@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Trash2, Search, ShoppingCart, Receipt as ReceiptIcon } from "lucide-react";
+import { Plus, Minus, Trash2, Search, ShoppingCart, Receipt as ReceiptIcon, Printer, Download, ShieldAlert } from "lucide-react";
 import { formatNaira, generateReceiptNumber, formatDate } from "@/lib/format";
+import { downloadReceiptPdf, printReceiptPdf, ReceiptData } from "@/lib/receipt";
 import { toast } from "sonner";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,6 +24,7 @@ interface CartItem {
 
 const POS = () => {
   const { user } = useAuth();
+  const { perms, businessOwnerId, loading: roleLoading } = useRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -31,11 +34,11 @@ const POS = () => {
   const [receipt, setReceipt] = useState<any>(null);
 
   const load = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("products").select("*").eq("user_id", user.id).eq("is_active", true).order("name");
+    if (!businessOwnerId) return;
+    const { data } = await supabase.from("products").select("*").eq("user_id", businessOwnerId).eq("is_active", true).order("name");
     setProducts((data || []) as Product[]);
   };
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [businessOwnerId]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -74,14 +77,14 @@ const POS = () => {
   const total = Math.max(0, subtotal + vatAmount - discountNum);
 
   const checkout = async () => {
-    if (!user || cart.length === 0) return;
+    if (!user || !businessOwnerId || cart.length === 0) return;
     setProcessing(true);
     try {
       const receiptNumber = generateReceiptNumber();
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
-          user_id: user.id,
+          user_id: businessOwnerId,
           receipt_number: receiptNumber,
           subtotal, vat_amount: vatAmount, discount: discountNum, total,
           payment_method: paymentMethod, status: "completed",
@@ -91,7 +94,7 @@ const POS = () => {
       if (saleErr || !sale) throw saleErr || new Error("Sale failed");
 
       const items = cart.map((i) => ({
-        sale_id: sale.id, user_id: user.id, product_id: i.product_id,
+        sale_id: sale.id, user_id: businessOwnerId, product_id: i.product_id,
         product_name: i.name, quantity: i.quantity, unit_price: i.price,
         vat_rate: i.vat_rate, line_total: i.price * i.quantity,
       }));
@@ -104,7 +107,7 @@ const POS = () => {
         if (!prod) continue;
         await supabase.from("products").update({ stock_quantity: prod.stock_quantity - i.quantity }).eq("id", i.product_id);
         await supabase.from("stock_movements").insert({
-          user_id: user.id, product_id: i.product_id, change: -i.quantity,
+          user_id: businessOwnerId, product_id: i.product_id, change: -i.quantity,
           reason: "sale", reference_id: sale.id,
         });
       }
@@ -119,6 +122,30 @@ const POS = () => {
       setProcessing(false);
     }
   };
+
+  const receiptToPdfData = (r: any): ReceiptData => ({
+    receipt_number: r.receipt_number,
+    created_at: r.created_at,
+    subtotal: r.subtotal, vat_amount: r.vat_amount, discount: r.discount, total: r.total,
+    payment_method: r.payment_method,
+    items: r.items,
+    cashier: user?.email || undefined,
+  });
+
+  if (roleLoading) {
+    return <div className="p-8 text-muted-foreground">Loading…</div>;
+  }
+  if (!perms.canUsePOS) {
+    return (
+      <div className="p-8 max-w-2xl mx-auto">
+        <div className="rounded-lg border bg-card p-8 text-center shadow-card">
+          <ShieldAlert className="h-10 w-10 text-destructive mx-auto mb-3" />
+          <h2 className="text-lg font-semibold">No POS access</h2>
+          <p className="text-sm text-muted-foreground mt-1">Your role does not permit POS checkout.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-screen">
