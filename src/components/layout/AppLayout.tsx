@@ -1,19 +1,14 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useEffect } from "react";
-
-const nav = [
-  { to: "/app", icon: LayoutDashboard, label: "Dashboard", end: true },
-  { to: "/app/pos", icon: ShoppingCart, label: "POS Terminal" },
-  { to: "/app/products", icon: Package, label: "Inventory" },
-  { to: "/app/customers", icon: Users, label: "Customers" },
-  { to: "/app/sales", icon: Receipt, label: "Sales History" },
-];
 
 export const AppLayout = () => {
   const { user, loading, signOut } = useAuth();
+  const { role, perms } = useRole();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +18,15 @@ export const AppLayout = () => {
   if (loading || !user) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading…</div>;
   }
+
+  const nav = [
+    { to: "/app", icon: LayoutDashboard, label: "Dashboard", end: true, show: true },
+    { to: "/app/pos", icon: ShoppingCart, label: "POS Terminal", show: perms.canUsePOS },
+    { to: "/app/products", icon: Package, label: "Inventory", show: true },
+    { to: "/app/customers", icon: Users, label: "Customers", show: true },
+    { to: "/app/sales", icon: Receipt, label: "Sales History", show: true },
+    { to: "/app/staff", icon: ShieldCheck, label: "Staff & Roles", show: perms.canManageStaff },
+  ].filter((n) => n.show);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -56,7 +60,10 @@ export const AppLayout = () => {
           ))}
         </nav>
         <div className="p-3 border-t">
-          <div className="px-3 py-2 text-xs text-muted-foreground truncate">{user.email}</div>
+          <div className="px-3 py-2 text-xs text-muted-foreground truncate flex items-center justify-between gap-2">
+            <span className="truncate">{user.email}</span>
+            {role && <Badge variant="secondary" className="capitalize text-[10px]">{role}</Badge>}
+          </div>
           <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
             <LogOut className="h-4 w-4" /> Sign out
           </Button>

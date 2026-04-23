@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ const empty = { name: "", sku: "", barcode: "", price: "0", cost: "0", stock_qua
 
 const Products = () => {
   const { user } = useAuth();
+  const { perms, businessOwnerId } = useRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -33,12 +35,12 @@ const Products = () => {
   const [form, setForm] = useState(empty);
 
   const load = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (!businessOwnerId) return;
+    const { data } = await supabase.from("products").select("*").eq("user_id", businessOwnerId).order("created_at", { ascending: false });
     setProducts((data || []) as Product[]);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [businessOwnerId]);
 
   const openNew = () => { setEditing(null); setForm(empty); setOpen(true); };
   const openEdit = (p: Product) => {
@@ -53,9 +55,10 @@ const Products = () => {
   };
 
   const save = async () => {
-    if (!user || !form.name.trim()) { toast.error("Product name is required"); return; }
+    if (!businessOwnerId || !form.name.trim()) { toast.error("Product name is required"); return; }
+    if (!perms.canEditInventory) { toast.error("You don't have permission to edit inventory"); return; }
     const payload = {
-      user_id: user.id,
+      user_id: businessOwnerId,
       name: form.name.trim(),
       sku: form.sku.trim() || null,
       barcode: form.barcode.trim() || null,
@@ -80,6 +83,7 @@ const Products = () => {
   };
 
   const remove = async (id: string) => {
+    if (!perms.canEditInventory) return toast.error("You don't have permission to edit inventory");
     if (!confirm("Delete this product?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -100,7 +104,7 @@ const Products = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Inventory</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your products and stock levels</p>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Add product</Button>
+        {perms.canEditInventory && <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" /> Add product</Button>}
       </div>
 
       <div className="mb-4">
@@ -144,8 +148,14 @@ const Products = () => {
                     </td>
                     <td className="px-4 py-3 text-right hidden md:table-cell text-muted-foreground">{p.vat_rate}%</td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {perms.canEditInventory ? (
+                        <>
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">View only</span>
+                      )}
                     </td>
                   </tr>
                 );

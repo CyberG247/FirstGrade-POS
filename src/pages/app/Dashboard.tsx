@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
 import { formatNaira } from "@/lib/format";
 import { TrendingUp, ShoppingCart, Package, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -8,21 +9,22 @@ import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { businessOwnerId } = useRole();
   const [stats, setStats] = useState({ todayRevenue: 0, todayCount: 0, products: 0, lowStock: 0 });
   const [recent, setRecent] = useState<any[]>([]);
   const [businessName, setBusinessName] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !businessOwnerId) return;
     (async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       const [{ data: salesToday }, { data: products }, { data: recentSales }, { data: profile }] = await Promise.all([
-        supabase.from("sales").select("total").eq("user_id", user.id).gte("created_at", today.toISOString()),
-        supabase.from("products").select("id, stock_quantity, low_stock_threshold").eq("user_id", user.id),
-        supabase.from("sales").select("id, receipt_number, total, payment_method, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-        supabase.from("profiles").select("business_name").eq("id", user.id).maybeSingle(),
+        supabase.from("sales").select("total").eq("user_id", businessOwnerId).gte("created_at", today.toISOString()),
+        supabase.from("products").select("id, stock_quantity, low_stock_threshold").eq("user_id", businessOwnerId),
+        supabase.from("sales").select("id, receipt_number, total, payment_method, created_at").eq("user_id", businessOwnerId).order("created_at", { ascending: false }).limit(5),
+        supabase.from("profiles").select("business_name").eq("id", businessOwnerId).maybeSingle(),
       ]);
 
       setStats({
@@ -34,7 +36,7 @@ const Dashboard = () => {
       setRecent(recentSales || []);
       setBusinessName(profile?.business_name || "");
     })();
-  }, [user]);
+  }, [user, businessOwnerId]);
 
   const cards = [
     { label: "Today's Revenue", value: formatNaira(stats.todayRevenue), icon: TrendingUp, accent: "text-success" },
