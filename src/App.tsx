@@ -13,6 +13,7 @@ import POS from "./pages/app/POS.tsx";
 import Products from "./pages/app/Products.tsx";
 import Customers from "./pages/app/Customers.tsx";
 import Sales from "./pages/app/Sales.tsx";
+import Staff from "./pages/app/Staff.tsx";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="products" element={<Products />} />
               <Route path="customers" element={<Customers />} />
               <Route path="sales" element={<Sales />} />
+              <Route path="staff" element={<Staff />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
