@@ -271,6 +271,14 @@ const POS = () => {
                 <div className="flex justify-between font-bold text-base pt-1 border-t"><span>Total</span><span>{formatNaira(receipt.total)}</span></div>
                 <div className="flex justify-between text-xs text-muted-foreground capitalize"><span>Payment</span><span>{receipt.payment_method}</span></div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => printReceiptPdf(receiptToPdfData(receipt))}>
+                  <Printer className="h-4 w-4 mr-1" /> Print A4
+                </Button>
+                <Button variant="outline" onClick={() => downloadReceiptPdf(receiptToPdfData(receipt))}>
+                  <Download className="h-4 w-4 mr-1" /> Download PDF
+                </Button>
+              </div>
               <Button className="w-full" onClick={() => setReceipt(null)}>New Sale</Button>
             </div>
           )}
