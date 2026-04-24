@@ -1,14 +1,17 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2, ShieldCheck, Settings as SettingsIcon } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2, ShieldCheck, Settings as SettingsIcon, Store } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
+import { useBranches } from "@/hooks/useBranches";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect } from "react";
 
 export const AppLayout = () => {
   const { user, loading, signOut } = useAuth();
   const { role, perms } = useRole();
+  const { branches, multiBranchEnabled, activeBranchId, setActiveBranchId } = useBranches();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +28,7 @@ export const AppLayout = () => {
     { to: "/app/products", icon: Package, label: "Inventory", show: true },
     { to: "/app/customers", icon: Users, label: "Customers", show: true },
     { to: "/app/sales", icon: Receipt, label: "Sales History", show: true },
+    { to: "/app/branches", icon: Store, label: "Branches", show: perms.canManageStaff },
     { to: "/app/staff", icon: ShieldCheck, label: "Staff & Roles", show: perms.canManageStaff },
     { to: "/app/settings", icon: SettingsIcon, label: "Receipt Settings", show: perms.canManageStaff },
   ].filter((n) => n.show);
@@ -61,6 +65,19 @@ export const AppLayout = () => {
           ))}
         </nav>
         <div className="p-3 border-t">
+          {multiBranchEnabled && branches.length > 0 && (
+            <div className="px-1 pb-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 px-2">Active branch</div>
+              <Select value={activeBranchId ?? ""} onValueChange={(v) => setActiveBranchId(v || null)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select branch…" /></SelectTrigger>
+                <SelectContent>
+                  {branches.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="px-3 py-2 text-xs text-muted-foreground truncate flex items-center justify-between gap-2">
             <span className="truncate">{user.email}</span>
             {role && <Badge variant="secondary" className="capitalize text-[10px]">{role}</Badge>}

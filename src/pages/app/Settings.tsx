@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useReceiptSettings, ReceiptSettings, DEFAULT_SETTINGS } from "@/hooks/useReceiptSettings";
+import { useReceiptSettingsFor, ReceiptSettings, DEFAULT_SETTINGS } from "@/hooks/useReceiptSettings";
+import { useBranches } from "@/hooks/useBranches";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -9,22 +10,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Receipt, Printer, Download, ShieldAlert, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Receipt, Printer, Download, ShieldAlert, AlertTriangle, CheckCircle2, Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadReceiptPdf, printReceiptPdf, qaBarcode, BarcodeQAResult } from "@/lib/receipt";
 
+const DEFAULT_SCOPE = "__default__";
+
 const Settings = () => {
-  const { settings, loading, save } = useReceiptSettings();
   const { perms } = useRole();
   const { user } = useAuth();
+  const { branches, multiBranchEnabled } = useBranches();
+
+  const [scope, setScope] = useState<string>(DEFAULT_SCOPE);
+  const branchId = scope === DEFAULT_SCOPE ? null : scope;
+  const branchName = branchId ? branches.find(b => b.id === branchId)?.name : null;
+
+  const { settings, exists, loading, save, remove } = useReceiptSettingsFor(branchId);
   const [draft, setDraft] = useState<ReceiptSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [qa, setQa] = useState<BarcodeQAResult | null>(null);
 
   useEffect(() => { setDraft(settings); }, [settings]);
 
-  // Re-run barcode QA whenever the paper / template choice changes,
-  // because barcode dimensions differ per template.
   useEffect(() => {
     const sample = `RCP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-9999`;
     const colW = draft.paper_size === "receipt" ? 72 : (draft.template === "branded" ? 70 : 60);
@@ -49,7 +57,16 @@ const Settings = () => {
     setSaving(true);
     const err = await save(draft);
     setSaving(false);
-    if (err) toast.error(err.message); else toast.success("Receipt settings saved");
+    if (err) toast.error(err.message);
+    else toast.success(branchId ? `Saved override for ${branchName}` : "Default receipt settings saved");
+  };
+
+  const onRemoveOverride = async () => {
+    if (!branchId) return;
+    if (!confirm(`Remove receipt override for ${branchName}? It will inherit business defaults.`)) return;
+    const err = await remove();
+    if (err) toast.error(err.message);
+    else toast.success("Override removed — using business defaults");
   };
 
   const sampleReceipt = () => ({
@@ -64,7 +81,11 @@ const Settings = () => {
       { product_name: "Coca-Cola 50cl", quantity: 6, unit_price: 250, line_total: 1500 },
       { product_name: "Hollandia Yoghurt 1L", quantity: 2, unit_price: 2000, line_total: 4000 },
     ],
-    business: { name: "Mama Ngozi Supermarket", phone: "+234 803 555 1234", tin: "12345678-0001" },
+    business: {
+      name: branchName ? `Mama Ngozi — ${branchName}` : "Mama Ngozi Supermarket",
+      phone: "+234 803 555 1234",
+      tin: "12345678-0001",
+    },
     cashier: user?.email || undefined,
     settings: draft,
   });
@@ -75,9 +96,42 @@ const Settings = () => {
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
           <Receipt className="h-6 w-6 text-primary" /> Receipt Settings
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Configure how receipts look and which paper size your store prints on.</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Configure how receipts look and which paper size your store prints on.
+        </p>
       </div>
 
+      {multiBranchEnabled && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4" /> Editing scope</CardTitle>
+            <CardDescription>Pick a branch to give it its own template/paper size, or edit the business-wide default.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3 items-center">
+            <Select value={scope} onValueChange={setScope}>
+              <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DEFAULT_SCOPE}>Business default (all branches)</SelectItem>
+                {branches.map(b => (
+                  <SelectItem key={b.id} value={b.id}>{b.name}{b.code ? ` (${b.code})` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {branchId && (
+              <span className="text-xs text-muted-foreground">
+                {exists ? "This branch has its own override." : "Inheriting business defaults — save to create an override."}
+              </span>
+            )}
+            {branchId && exists && (
+              <Button variant="outline" size="sm" onClick={onRemoveOverride}>Remove override</Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-muted-foreground p-8"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+      ) : (
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -148,7 +202,7 @@ const Settings = () => {
         <Card>
           <CardHeader>
             <CardTitle>Store Details</CardTitle>
-            <CardDescription>Shown at the top of every receipt for this store.</CardDescription>
+            <CardDescription>{branchId ? `Shown on receipts printed at ${branchName}.` : "Shown at the top of every receipt."}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -209,6 +263,7 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <div className="flex flex-wrap gap-2 justify-between items-center">
         <div className="flex gap-2">
@@ -220,7 +275,7 @@ const Settings = () => {
           </Button>
         </div>
         <Button onClick={onSave} disabled={saving || loading} className="min-w-32">
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? "Saving…" : branchId ? `Save override for ${branchName}` : "Save defaults"}
         </Button>
       </div>
     </div>

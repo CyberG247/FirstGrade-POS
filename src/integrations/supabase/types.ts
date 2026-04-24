@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      branches: {
+        Row: {
+          address: string | null
+          business_owner_id: string
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          business_owner_id: string
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          business_owner_id?: string
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -134,6 +170,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          multi_branch_enabled: boolean
           phone: string | null
           tin: string | null
           updated_at: string
@@ -144,6 +181,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          multi_branch_enabled?: boolean
           phone?: string | null
           tin?: string | null
           updated_at?: string
@@ -154,6 +192,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          multi_branch_enabled?: boolean
           phone?: string | null
           tin?: string | null
           updated_at?: string
@@ -162,6 +201,7 @@ export type Database = {
       }
       receipt_settings: {
         Row: {
+          branch_id: string | null
           business_owner_id: string
           created_at: string
           footer_note: string | null
@@ -173,6 +213,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           business_owner_id: string
           created_at?: string
           footer_note?: string | null
@@ -184,6 +225,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           business_owner_id?: string
           created_at?: string
           footer_note?: string | null
@@ -194,7 +236,15 @@ export type Database = {
           template?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "receipt_settings_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sale_items: {
         Row: {
@@ -346,6 +396,7 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          active_branch_id: string | null
           business_owner_id: string
           created_at: string
           id: string
@@ -353,6 +404,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_branch_id?: string | null
           business_owner_id: string
           created_at?: string
           id?: string
@@ -360,13 +412,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_branch_id?: string | null
           business_owner_id?: string
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_active_branch_id_fkey"
+            columns: ["active_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
