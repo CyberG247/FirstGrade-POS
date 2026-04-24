@@ -7,11 +7,13 @@ import { Receipt, Download, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { downloadReceiptPdf } from "@/lib/receipt";
+import { useReceiptSettings } from "@/hooks/useReceiptSettings";
 import { toast } from "sonner";
 
 const Sales = () => {
   const { user } = useAuth();
   const { perms, businessOwnerId } = useRole();
+  const { settings: receiptSettings } = useReceiptSettings();
   const [sales, setSales] = useState<any[]>([]);
 
   const load = () => {
@@ -27,6 +29,7 @@ const Sales = () => {
       ...sale,
       items: items || [],
       cashier: user?.email || undefined,
+      settings: receiptSettings,
     });
   };
 

@@ -14,6 +14,7 @@ import Products from "./pages/app/Products.tsx";
 import Customers from "./pages/app/Customers.tsx";
 import Sales from "./pages/app/Sales.tsx";
 import Staff from "./pages/app/Staff.tsx";
+import Settings from "./pages/app/Settings.tsx";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="customers" element={<Customers />} />
               <Route path="sales" element={<Sales />} />
               <Route path="staff" element={<Staff />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
