@@ -15,6 +15,8 @@ import Customers from "./pages/app/Customers.tsx";
 import Sales from "./pages/app/Sales.tsx";
 import Staff from "./pages/app/Staff.tsx";
 import Settings from "./pages/app/Settings.tsx";
+import Branches from "./pages/app/Branches.tsx";
+import { BranchProvider } from "./hooks/useBranches.tsx";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <BranchProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
@@ -36,9 +39,11 @@ const App = () => (
               <Route path="sales" element={<Sales />} />
               <Route path="staff" element={<Staff />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="branches" element={<Branches />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </BranchProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
