@@ -160,6 +160,42 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_settings: {
+        Row: {
+          business_owner_id: string
+          created_at: string
+          footer_note: string | null
+          id: string
+          paper_size: string
+          show_barcode: boolean
+          store_address: string | null
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          business_owner_id: string
+          created_at?: string
+          footer_note?: string | null
+          id?: string
+          paper_size?: string
+          show_barcode?: boolean
+          store_address?: string | null
+          template?: string
+          updated_at?: string
+        }
+        Update: {
+          business_owner_id?: string
+          created_at?: string
+          footer_note?: string | null
+          id?: string
+          paper_size?: string
+          show_barcode?: boolean
+          store_address?: string | null
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           created_at: string

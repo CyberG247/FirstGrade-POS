@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Minus, Trash2, Search, ShoppingCart, Receipt as ReceiptIcon, Printer, Download, ShieldAlert } from "lucide-react";
 import { formatNaira, generateReceiptNumber, formatDate } from "@/lib/format";
 import { downloadReceiptPdf, printReceiptPdf, ReceiptData } from "@/lib/receipt";
+import { useReceiptSettings } from "@/hooks/useReceiptSettings";
 import { toast } from "sonner";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -25,6 +26,7 @@ interface CartItem {
 const POS = () => {
   const { user } = useAuth();
   const { perms, businessOwnerId, loading: roleLoading } = useRole();
+  const { settings: receiptSettings } = useReceiptSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -130,6 +132,7 @@ const POS = () => {
     payment_method: r.payment_method,
     items: r.items,
     cashier: user?.email || undefined,
+    settings: receiptSettings,
   });
 
   if (roleLoading) {

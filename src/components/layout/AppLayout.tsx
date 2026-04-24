@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, Receipt, LogOut, Building2, ShieldCheck, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export const AppLayout = () => {
     { to: "/app/customers", icon: Users, label: "Customers", show: true },
     { to: "/app/sales", icon: Receipt, label: "Sales History", show: true },
     { to: "/app/staff", icon: ShieldCheck, label: "Staff & Roles", show: perms.canManageStaff },
+    { to: "/app/settings", icon: SettingsIcon, label: "Receipt Settings", show: perms.canManageStaff },
   ].filter((n) => n.show);
 
   return (
